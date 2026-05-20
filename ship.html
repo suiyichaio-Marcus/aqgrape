@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阿Q葡萄 🚚 出貨清單</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans TC', sans-serif; background: #f0fdf4; min-height: 100vh; }
+
+    /* ─── Login ─────────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #14532d, #16a34a);
+    }
+    .login-box {
+      background: white; border-radius: 1.25rem; padding: 2.5rem 2rem;
+      width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); text-align: center;
+    }
+    .login-box .emoji { font-size: 3rem; margin-bottom: 0.5rem; }
+    .login-box h1 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 0.25rem; }
+    .login-box p { font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem; }
+    .login-input {
+      width: 100%; padding: 0.875rem 1rem; border: 2px solid #e5e7eb; border-radius: 0.75rem;
+      font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s;
+      text-align: center; letter-spacing: 0.2em; margin-bottom: 0.75rem;
+    }
+    .login-input:focus { border-color: #16a34a; }
+    .login-input.url-input { letter-spacing: normal; text-align: left; font-size: 0.8rem; }
+    .login-btn {
+      width: 100%; padding: 0.875rem; background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white; border: none; border-radius: 0.75rem; font-size: 1rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: opacity 0.2s;
+    }
+    .login-btn:hover { opacity: 0.9; }
+    .login-err { color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; display: none; }
+    .login-err.show { display: block; }
+    .login-note { font-size: 0.75rem; color: #9ca3af; margin-top: 0.75rem; }
+
+    /* ─── App ────────────────────────────────────────── */
+    #app { display: none; }
+    #app.show { display: block; }
+
+    /* ─── Top Bar ────────────────────────────────────── */
+    .topbar {
+      background: linear-gradient(135deg, #14532d, #16a34a);
+      color: white; padding: 0.875rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(20,83,45,0.3);
+    }
+    .topbar-title { font-size: 1rem; font-weight: 700; }
+    .topbar-title span { font-size: 0.75rem; opacity: 0.8; margin-left: 0.5rem; }
+    .logout-btn {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem;
+      font-family: inherit; cursor: pointer; transition: background 0.2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+    /* ─── Main ───────────────────────────────────────── */
+    .main { padding: 1.25rem; max-width: 960px; margin: 0 auto; }
+
+    /* ─── Date Bar ───────────────────────────────────── */
+    .date-bar {
+      background: white; border-radius: 1rem; padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 0.875rem; flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1rem;
+    }
+    .date-bar label { font-size: 0.875rem; font-weight: 600; color: #374151; }
+    .date-input {
+      padding: 0.5rem 0.875rem; border: 2px solid #d1fae5; border-radius: 0.625rem;
+      font-size: 0.9rem; font-family: inherit; outline: none; color: #1f2937;
+      transition: border-color 0.2s; cursor: pointer;
+    }
+    .date-input:focus { border-color: #16a34a; }
+    .today-btn {
+      padding: 0.5rem 0.875rem; background: #f0fdf4; border: 2px solid #d1fae5;
+      border-radius: 0.625rem; font-size: 0.8rem; font-weight: 600; color: #15803d;
+      cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .today-btn:hover { background: #dcfce7; }
+    .refresh-btn {
+      padding: 0.5rem 0.875rem; background: #16a34a; border: none;
+      border-radius: 0.625rem; font-size: 0.8rem; font-weight: 600; color: white;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s; margin-left: auto;
+    }
+    .refresh-btn:hover { opacity: 0.85; }
+
+    /* ─── Summary Cards ──────────────────────────────── */
+    .summary { display: flex; gap: 0.875rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .sum-card {
+      background: white; border-radius: 0.875rem; padding: 0.875rem 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex: 1; min-width: 120px;
+    }
+    .sum-card .val { font-size: 1.75rem; font-weight: 900; color: #16a34a; line-height: 1; }
+    .sum-card .lbl { font-size: 0.7rem; color: #6b7280; margin-top: 0.25rem; }
+    .sum-card.orange .val { color: #d97706; }
+    .sum-card.gray .val { color: #6b7280; }
+
+    /* ─── Action Bar ─────────────────────────────────── */
+    .action-bar {
+      display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;
+    }
+    .filter-toggle {
+      display: flex; background: white; border-radius: 0.625rem; overflow: hidden;
+      border: 2px solid #d1fae5; font-size: 0.8rem;
+    }
+    .filter-toggle button {
+      padding: 0.5rem 0.875rem; border: none; background: transparent; cursor: pointer;
+      font-family: inherit; font-weight: 500; color: #6b7280; transition: all 0.15s;
+    }
+    .filter-toggle button.on { background: #16a34a; color: white; }
+    .ship-all-btn {
+      padding: 0.5rem 1rem; background: #16a34a; border: none; border-radius: 0.625rem;
+      color: white; font-size: 0.8rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .ship-all-btn:hover { opacity: 0.85; }
+    .print-btn {
+      padding: 0.5rem 1rem; background: #1d4ed8; border: none; border-radius: 0.625rem;
+      color: white; font-size: 0.8rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity 0.2s; margin-left: auto;
+    }
+    .print-btn:hover { opacity: 0.85; }
+
+    /* ─── Empty / Loading ────────────────────────────── */
+    .empty-msg {
+      text-align: center; padding: 3rem 1rem; color: #6b7280;
+      background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .empty-msg .big { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .empty-msg p { font-size: 0.875rem; }
+    .loading-msg { text-align: center; padding: 2rem; color: #6b7280; font-size: 0.875rem; }
+
+    /* ─── Order Cards (mobile) ───────────────────────── */
+    .order-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .order-card {
+      background: white; border-radius: 0.875rem; padding: 1rem 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #d1fae5;
+      transition: border-color 0.2s;
+    }
+    .order-card.shipped { border-left-color: #86efac; opacity: 0.6; }
+    .order-card.review  { border-left-color: #fed7aa; }
+    .order-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 0.625rem; gap: 0.5rem;
+    }
+    .order-name { font-size: 1rem; font-weight: 700; color: #1f2937; }
+    .order-id   { font-size: 0.7rem; color: #9ca3af; margin-top: 0.15rem; }
+    .badge {
+      font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.625rem;
+      border-radius: 999px; white-space: nowrap;
+    }
+    .badge-pending  { background: #ede9fe; color: #6d28d9; }
+    .badge-confirm  { background: #dbeafe; color: #1d4ed8; }
+    .badge-shipped  { background: #dcfce7; color: #15803d; }
+    .badge-review   { background: #fed7aa; color: #92400e; }
+    .badge-cancel   { background: #f3f4f6; color: #6b7280; }
+    .order-meta {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.625rem;
+      font-size: 0.8rem; margin-bottom: 0.75rem;
+    }
+    .meta-k { color: #9ca3af; font-weight: 500; }
+    .meta-v { color: #374151; font-weight: 600; }
+    .meta-v.highlight { color: #16a34a; font-size: 1rem; font-weight: 900; }
+    .ship-btn {
+      width: 100%; padding: 0.625rem; background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white; border: none; border-radius: 0.625rem; font-size: 0.875rem;
+      font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity 0.2s;
+    }
+    .ship-btn:hover { opacity: 0.85; }
+    .ship-btn:disabled { background: #d1fae5; color: #6b7280; cursor: not-allowed; }
+    .ship-btn.loading { opacity: 0.6; cursor: wait; }
+
+    /* ─── Print Styles ───────────────────────────────── */
+    @media print {
+      body { background: white; font-size: 11pt; }
+      .topbar, .date-bar, .action-bar, .login-screen, #login-screen,
+      .ship-btn, .logout-btn, .refresh-btn, .print-btn, .ship-all-btn,
+      .filter-toggle, .today-btn { display: none !important; }
+      #app { display: block !important; }
+      .main { padding: 0; max-width: 100%; }
+      .summary { display: none; }
+      .print-header { display: block !important; }
+      .order-card {
+        border: 1px solid #ccc; margin-bottom: 0.5rem;
+        break-inside: avoid; page-break-inside: avoid;
+        border-left: 4px solid #333;
+      }
+      .order-card.shipped { opacity: 1; }
+    }
+    .print-header {
+      display: none;
+      text-align: center; margin-bottom: 1rem; padding-bottom: 0.5rem;
+      border-bottom: 2px solid #333;
+    }
+    .print-header h2 { font-size: 16pt; font-weight: 900; }
+    .print-header p  { font-size: 10pt; color: #555; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════
+     LOGIN
+════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="emoji">🚚</div>
+    <h1>出貨管理介面</h1>
+    <p>大村阿榮葡萄訂單系統</p>
+    <input type="text"     id="login-url" class="login-input url-input" placeholder="Google Apps Script 網址">
+    <input type="password" id="login-pw"  class="login-input"           placeholder="密碼">
+    <button class="login-btn" onclick="doLogin()">登入</button>
+    <div id="login-err" class="login-err">密碼錯誤或網址未填</div>
+    <p class="login-note">※ 設定會儲存在此裝置，下次自動填入</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     APP
+════════════════════════════════════════════════════ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">🚚 出貨清單 <span id="topbar-date"></span></div>
+    <button class="logout-btn" onclick="doLogout()">登出</button>
+  </div>
+
+  <div class="main">
+
+    <!-- Print Header (hidden on screen) -->
+    <div class="print-header">
+      <h2>🍇 大村阿榮葡萄 — 出貨清單</h2>
+      <p id="print-subtitle"></p>
+    </div>
+
+    <!-- Date Picker -->
+    <div class="date-bar">
+      <label>📅 出貨日期</label>
+      <input type="date" id="date-pick" class="date-input" onchange="loadOrders()">
+      <button class="today-btn" onclick="setToday()">今天</button>
+      <button class="refresh-btn" onclick="loadOrders()">🔄 重新整理</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <div class="sum-card">
+        <div class="val" id="s-total">—</div>
+        <div class="lbl">當日訂單（筆）</div>
+      </div>
+      <div class="sum-card orange">
+        <div class="val" id="s-pending">—</div>
+        <div class="lbl">待出貨</div>
+      </div>
+      <div class="sum-card">
+        <div class="val" id="s-boxes">—</div>
+        <div class="lbl">待出貨（箱）</div>
+      </div>
+      <div class="sum-card gray">
+        <div class="val" id="s-shipped">—</div>
+        <div class="lbl">已出貨</div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div class="filter-toggle">
+        <button id="f-pending" class="on" onclick="setFilter('pending')">僅待出貨</button>
+        <button id="f-all"               onclick="setFilter('all')">全部</button>
+      </div>
+      <button class="ship-all-btn" onclick="shipAll()">✅ 全部標記已出貨</button>
+      <button class="print-btn" onclick="window.print()">🖨️ 列印清單</button>
+    </div>
+
+    <!-- Order List -->
+    <div id="order-list" class="order-list">
+      <div class="loading-msg">請選擇出貨日期 📅</div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ══════════════════════════════════════════════════════
+   CONFIG & AUTH
+══════════════════════════════════════════════════════ */
+const DEFAULT_PW = 'aqgrape2025';
+const LS_URL     = 'aqgrape_api_url';
+const LS_API_PW  = 'aqgrape_api_pw';
+const LS_SHIP_PW = 'aqgrape_ship_pw';   // 出貨介面登入密碼（可跟 api_pw 不同）
+
+function getCfg(k, def = '') { return localStorage.getItem(k) || def; }
+function setCfg(k, v)        { localStorage.setItem(k, v); }
+
+// Pre-fill login fields from localStorage
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-url').value = getCfg(LS_URL);
+  // pw field intentionally blank for security
+  setToday();
+
+  // Auto-login if already authenticated this session
+  if (sessionStorage.getItem('ship_auth') === '1') showApp();
+});
+
+function doLogin() {
+  const url = document.getElementById('login-url').value.trim();
+  const pw  = document.getElementById('login-pw').value.trim();
+  const err = document.getElementById('login-err');
+
+  if (!url || !pw) { err.classList.add('show'); err.textContent = '請填寫網址和密碼'; return; }
+
+  // Accept either the saved ship_pw or the api_pw (backward compatible)
+  const savedShipPw = getCfg(LS_SHIP_PW, getCfg(LS_API_PW, DEFAULT_PW));
+  if (pw !== savedShipPw) {
+    err.classList.add('show'); err.textContent = '密碼錯誤，請確認後重試';
+    return;
+  }
+
+  setCfg(LS_URL, url);
+  err.classList.remove('show');
+  sessionStorage.setItem('ship_auth', '1');
+  showApp();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('ship_auth');
+  location.reload();
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  loadOrders();
+}
+
+/* ══════════════════════════════════════════════════════
+   API
+══════════════════════════════════════════════════════ */
+async function apiPost(body) {
+  const url = getCfg(LS_URL);
+  if (!url) throw new Error('未設定 GAS 網址');
+  const res = await fetch(url, {
+    method: 'POST', redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ ...body, password: getCfg(LS_API_PW, DEFAULT_PW) }),
+  });
+  return res.json();
+}
+
+/* ══════════════════════════════════════════════════════
+   DATE HELPERS
+══════════════════════════════════════════════════════ */
+function todayTW() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); // yyyy-mm-dd
+}
+
+function setToday() {
+  const input = document.getElementById('date-pick');
+  input.value = todayTW();
+  loadOrders();
+}
+
+function fmtDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  return isNaN(d) ? str : d.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei', month: 'long', day: 'numeric', weekday: 'short' });
+}
+
+/* ══════════════════════════════════════════════════════
+   ORDERS STATE
+══════════════════════════════════════════════════════ */
+let allOrders  = [];   // orders for selected date
+let filterMode = 'pending';   // 'pending' | 'all'
+
+function setFilter(mode) {
+  filterMode = mode;
+  document.getElementById('f-pending').classList.toggle('on', mode === 'pending');
+  document.getElementById('f-all').classList.toggle('on',     mode === 'all');
+  renderOrders();
+}
+
+/* ══════════════════════════════════════════════════════
+   LOAD ORDERS
+══════════════════════════════════════════════════════ */
+async function loadOrders() {
+  const date = document.getElementById('date-pick').value;
+  if (!date) return;
+
+  // Update print subtitle & topbar
+  const dateLabel = fmtDate(date);
+  document.getElementById('topbar-date').textContent = dateLabel;
+  document.getElementById('print-subtitle').textContent =
+    '出貨日期：' + dateLabel + '　列印時間：' +
+    new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+  document.getElementById('order-list').innerHTML =
+    '<div class="loading-msg">🔄 載入中…</div>';
+
+  try {
+    const res = await apiPost({ action: 'getOrders' });
+    if (!res.success) throw new Error(res.error || '讀取失敗');
+
+    // Filter by delivery date
+    allOrders = (res.orders || []).filter(o => {
+      const od = (o.deliveryDate || '').slice(0, 10);
+      return od === date;
+    });
+
+    updateSummary();
+    renderOrders();
+  } catch (e) {
+    document.getElementById('order-list').innerHTML =
+      '<div class="empty-msg"><div class="big">⚠️</div><p>載入失敗：' + e.message + '</p></div>';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SUMMARY
+══════════════════════════════════════════════════════ */
+function updateSummary() {
+  const active  = allOrders.filter(o => o.status !== '已取消' && o.status !== '申請待審');
+  const pending = active.filter(o => o.status !== '已出貨');
+  const shipped = active.filter(o => o.status === '已出貨');
+  const boxes   = pending.reduce((s, o) => s + (parseInt(o.quantity) || 0), 0);
+
+  document.getElementById('s-total').textContent   = active.length;
+  document.getElementById('s-pending').textContent = pending.length;
+  document.getElementById('s-boxes').textContent   = boxes;
+  document.getElementById('s-shipped').textContent = shipped.length;
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════════ */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const BADGE = {
+  '待確認': ['badge-pending', '待確認'],
+  '已確認': ['badge-confirm', '已確認'],
+  '已出貨': ['badge-shipped', '✅ 已出貨'],
+  '申請待審': ['badge-review',  '⚠️ 待審核'],
+  '已取消': ['badge-cancel',  '已取消'],
+};
+
+function renderOrders() {
+  const list = document.getElementById('order-list');
+
+  let show = allOrders.filter(o => o.status !== '已取消' && o.status !== '申請待審');
+  if (filterMode === 'pending') show = show.filter(o => o.status !== '已出貨');
+
+  if (show.length === 0) {
+    const msg = filterMode === 'pending' ? '🎉 全部訂單已出貨！' : '此日期沒有訂單';
+    list.innerHTML = '<div class="empty-msg"><div class="big">' +
+      (filterMode === 'pending' ? '🎉' : '📭') +
+      '</div><p>' + msg + '</p></div>';
+    return;
+  }
+
+  list.innerHTML = show.map((o, idx) => {
+    const isShipped = o.status === '已出貨';
+    const [badgeCls, badgeTxt] = BADGE[o.status] || ['badge-cancel', o.status];
+    const cardCls = isShipped ? 'order-card shipped' : 'order-card';
+
+    return `<div class="${cardCls}" id="card-${esc(o.orderId)}">
+  <div class="order-card-top">
+    <div>
+      <div class="order-name">${idx + 1}. ${esc(o.name)}</div>
+      <div class="order-id">${esc(o.orderId)}</div>
+    </div>
+    <span class="badge ${badgeCls}">${badgeTxt}</span>
+  </div>
+  <div class="order-meta">
+    <span class="meta-k">📦 箱數</span>
+    <span class="meta-v highlight">${esc(o.quantity)} 箱</span>
+    <span class="meta-k">📞 電話</span>
+    <span class="meta-v">${esc(o.phone)}</span>
+    <span class="meta-k">📍 地址</span>
+    <span class="meta-v">${esc(o.address || '（未填）')}</span>
+    <span class="meta-k">💳 付款</span>
+    <span class="meta-v">${esc(o.payment)}</span>
+    ${o.note ? `<span class="meta-k">📝 備註</span><span class="meta-v">${esc(o.note)}</span>` : ''}
+  </div>
+  ${!isShipped
+    ? `<button class="ship-btn" id="btn-${esc(o.orderId)}" onclick="markShipped('${esc(o.orderId)}')">
+         ✅ 標記已出貨
+       </button>`
+    : `<button class="ship-btn" disabled>已出貨</button>`
+  }
+</div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   MARK SHIPPED
+══════════════════════════════════════════════════════ */
+async function markShipped(orderId) {
+  const btn  = document.getElementById('btn-' + orderId);
+  const card = document.getElementById('card-' + orderId);
+  if (!btn || btn.disabled) return;
+
+  btn.textContent = '處理中…';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const res = await apiPost({ action: 'updateOrderStatus', orderId, status: '已出貨' });
+    if (!res.success) throw new Error(res.error || '更新失敗');
+
+    // Update local state
+    const order = allOrders.find(o => o.orderId === orderId);
+    if (order) order.status = '已出貨';
+
+    // Update card visually
+    card.classList.add('shipped');
+    const badge = card.querySelector('.badge');
+    if (badge) { badge.className = 'badge badge-shipped'; badge.textContent = '✅ 已出貨'; }
+    btn.textContent = '已出貨';
+    btn.disabled = true;
+
+    updateSummary();
+    if (filterMode === 'pending') {
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.4s, max-height 0.4s';
+        card.style.opacity = '0';
+        card.style.maxHeight = '0';
+        card.style.overflow = 'hidden';
+        setTimeout(() => renderOrders(), 420);
+      }, 800);
+    }
+  } catch (e) {
+    btn.textContent = '❌ 失敗：' + e.message;
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SHIP ALL
+══════════════════════════════════════════════════════ */
+async function shipAll() {
+  const pending = allOrders.filter(o => o.status !== '已出貨' && o.status !== '已取消' && o.status !== '申請待審');
+  if (pending.length === 0) { alert('沒有待出貨的訂單'); return; }
+  if (!confirm(`確定將 ${pending.length} 筆訂單全部標記為已出貨？`)) return;
+
+  for (const o of pending) {
+    await markShipped(o.orderId);
+    await new Promise(r => setTimeout(r, 200)); // avoid rate limit
+  }
+}
+</script>
+</body>
+</html>
