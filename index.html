@@ -811,9 +811,16 @@ function cartQtyChange(id, delta) {
 function cartDateChange(id, newDate) {
   var item = cart.find(function(i) { return i.id === id; });
   if (!item) return;
+  var today = todayStr();
   if (compareDates(newDate, CFG.SALE_START) < 0 || compareDates(newDate, CFG.SALE_END) > 0) {
     var el = document.querySelector('#cri-' + id + ' .cr-date-input');
     if (el) el.value = item.date;
+    return;
+  }
+  if (compareDates(newDate, today) < 0) {
+    alert('出貨日期不能是過去的日期，請重新選擇。');
+    var elp = document.querySelector('#cri-' + id + ' .cr-date-input');
+    if (elp) elp.value = item.date;
     return;
   }
   if (cart.some(function(i) { return i.id !== id && i.date === newDate; })) {
@@ -883,7 +890,7 @@ function cartItemHTML(item) {
     '<div class="cr-date-wrap">' +
     '<div class="cr-date-label">📅 出貨日期</div>' +
     '<input type="date" class="cr-date-input' + (isPast || isFull ? ' err' : '') + '"' +
-    ' value="' + item.date + '" min="' + CFG.SALE_START + '" max="' + CFG.SALE_END + '"' +
+    ' value="' + item.date + '" min="' + (compareDates(todayStr(), CFG.SALE_START) > 0 ? todayStr() : CFG.SALE_START) + '" max="' + CFG.SALE_END + '"' +
     ' onchange="cartDateChange(' + item.id + ', this.value)">' +
     '<span class="cr-rem">' + remText + '</span>' +
     '</div>' +
