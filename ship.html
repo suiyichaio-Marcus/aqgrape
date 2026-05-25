@@ -338,6 +338,13 @@ function showApp() {
 /* ══════════════════════════════════════════════════════
    API
 ══════════════════════════════════════════════════════ */
+async function apiFetch(params) {
+  const url = getCfg(LS_URL);
+  if (!url) throw new Error('未設定 GAS 網址');
+  const res = await fetch(url + '?' + new URLSearchParams(params).toString(), { cache: 'no-store', redirect: 'follow' });
+  return res.json();
+}
+
 async function apiPost(body) {
   const url = getCfg(LS_URL);
   if (!url) throw new Error('未設定 GAS 網址');
@@ -399,7 +406,7 @@ async function loadOrders() {
     '<div class="loading-msg">🔄 載入中…</div>';
 
   try {
-    const res = await apiPost({ action: 'getOrders' });
+    const res = await apiFetch({ action: 'getOrders', password: getCfg(LS_API_PW, DEFAULT_PW) });
     if (!res.success) throw new Error(res.error || '讀取失敗');
 
     // Filter by delivery date
