@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阿Q葡萄 ⚙️ 管理後台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans TC', sans-serif; background: #f5f3ff; min-height: 100vh; }
+
+    /* ─── Login ───────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    }
+    .login-box { background: white; border-radius: 1.25rem; padding: 2.5rem 2rem; width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); text-align: center; }
+    .login-box .emoji { font-size: 3rem; margin-bottom: 0.5rem; }
+    .login-box h1 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 0.25rem; }
+    .login-box p { font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem; }
+    .login-input {
+      width: 100%; padding: 0.875rem 1rem; border: 2px solid #e5e7eb; border-radius: 0.75rem;
+      font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s; text-align: center; letter-spacing: 0.2em;
+    }
+    .login-input:focus { border-color: #7c3aed; }
+    .login-btn {
+      width: 100%; margin-top: 1rem; padding: 0.875rem; background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      color: white; border: none; border-radius: 0.75rem; font-size: 1rem; font-weight: 700; font-family: inherit; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .login-btn:hover { opacity: 0.9; }
+    .login-err { color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; display: none; }
+    .login-err.show { display: block; }
+
+    /* ─── App Shell ───────────────────────────────── */
+    #app { display: none; min-height: 100vh; }
+    #app.show { display: block; }
+
+    /* ─── Top Bar ─────────────────────────────────── */
+    .topbar {
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+      color: white;
+      padding: 0.875rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(76,29,149,0.3);
+    }
+    .topbar-title { font-size: 1rem; font-weight: 700; }
+    .topbar-title span { font-size: 0.75rem; opacity: 0.8; margin-left: 0.5rem; }
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .topbar-date { font-size: 0.75rem; opacity: 0.8; }
+    .logout-btn {
+      background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.375rem 0.75rem;
+      border-radius: 0.5rem; font-size: 0.75rem; font-family: inherit; cursor: pointer; transition: background 0.2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+    /* ─── Tabs ────────────────────────────────────── */
+    .tabs { background: white; border-bottom: 1px solid #e5e7eb; display: flex; overflow-x: auto; }
+    .tab {
+      padding: 0.875rem 1.25rem; font-size: 0.875rem; font-weight: 500; color: #6b7280;
+      border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    }
+    .tab.on { color: #7c3aed; border-bottom-color: #7c3aed; }
+    .tab:hover:not(.on) { color: #374151; background: #fafafa; }
+
+    /* ─── Tab Content ─────────────────────────────── */
+    .tab-content { display: none; padding: 1.25rem; max-width: 900px; margin: 0 auto; }
+    .tab-content.on { display: block; }
+
+    /* ─── Summary Cards ───────────────────────────── */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; margin-bottom: 1.25rem; }
+    @media (max-width: 480px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+    .sum-card { background: white; border-radius: 0.875rem; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .sum-card .s-val { font-size: 1.75rem; font-weight: 900; color: #4c1d95; line-height: 1; }
+    .sum-card .s-lbl { font-size: 0.7rem; color: #6b7280; margin-top: 0.375rem; }
+    .sum-card.green .s-val { color: #16a34a; }
+    .sum-card.orange .s-val { color: #d97706; }
+
+    /* ─── Capacity Control ────────────────────────── */
+    .cap-control { background: white; border-radius: 0.875rem; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .cap-control h3 { font-size: 0.875rem; font-weight: 700; color: #374151; margin-bottom: 1rem; }
+    .cap-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .cap-input-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .cap-input {
+      width: 90px; padding: 0.625rem 0.75rem; border: 2px solid #7c3aed; border-radius: 0.625rem;
+      font-size: 1.5rem; font-weight: 700; text-align: center; font-family: inherit; outline: none; color: #4c1d95;
+    }
+    .cap-label { font-size: 0.875rem; color: #6b7280; }
+    .cap-save-btn {
+      padding: 0.625rem 1.25rem; background: #7c3aed; color: white; border: none; border-radius: 0.625rem;
+      font-size: 0.875rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.2s;
+    }
+    .cap-save-btn:hover { background: #5b21b6; }
+    .cap-bar-wrap { flex: 1; min-width: 180px; }
+    .cap-bar-track { height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden; margin-bottom: 0.375rem; }
+    .cap-bar-fill { height: 100%; background: #16a34a; border-radius: 6px; transition: width 0.4s; }
+    .cap-bar-fill.warn { background: #d97706; }
+    .cap-bar-fill.full { background: #dc2626; }
+    .cap-bar-text { font-size: 0.75rem; color: #6b7280; }
+
+    /* ─── Table ───────────────────────────────────── */
+    .table-card { background: white; border-radius: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 1.25rem; }
+    .table-header { padding: 1rem 1.25rem; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+    .table-header h3 { font-size: 0.875rem; font-weight: 700; color: #374151; }
+    .table-tools { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .filter-select {
+      padding: 0.5rem 0.75rem; border: 1.5px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.8125rem; font-family: inherit;
+      outline: none; background: white; color: #374151; cursor: pointer;
+    }
+    .filter-select:focus { border-color: #7c3aed; }
+    .export-btn {
+      padding: 0.5rem 1rem; background: #16a34a; color: white; border: none; border-radius: 0.5rem;
+      font-size: 0.8125rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.2s;
+    }
+    .export-btn:hover { background: #15803d; }
+    .refresh-btn {
+      padding: 0.5rem 0.75rem; background: white; border: 1.5px solid #e5e7eb; color: #374151; border-radius: 0.5rem;
+      font-size: 0.8125rem; font-family: inherit; cursor: pointer; transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: #7c3aed; color: #7c3aed; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; background: #f9fafb; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+    td { padding: 0.875rem 1rem; border-bottom: 1px solid #f3f4f6; color: #1f2937; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* ─── Status Badge ────────────────────────────── */
+    .badge { display: inline-block; padding: 0.25rem 0.625rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+    .badge.pending  { background: #fef9c3; color: #854d0e; }
+    .badge.confirm  { background: #dcfce7; color: #166534; }
+    .badge.shipped  { background: #dbeafe; color: #1e40af; }
+    .badge.cancel   { background: #fee2e2; color: #991b1b; }
+    .badge.review   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .approve-btn { padding: 0.3rem 0.75rem; background: #16a34a; color: white; border: none; border-radius: 0.4rem; font-size: 0.75rem; font-weight: 700; font-family: inherit; cursor: pointer; margin-left: 0.5rem; }
+    .approve-btn:hover { background: #15803d; }
+    .review-alert { background: #fff7ed; border: 1.5px solid #fb923c; border-radius: 0.5rem; padding: 0.625rem 0.875rem; margin-bottom: 0.75rem; font-size: 0.8125rem; color: #9a3412; display: none; }
+    .review-alert.show { display: block; }
+    .wl-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid #f3f4f6; font-size: 0.8125rem; }
+    .wl-phone { font-weight: 600; color: #1f2937; flex: 1; }
+    .wl-note  { color: #6b7280; font-size: 0.75rem; flex: 2; }
+    .wl-del   { padding: 0.2rem 0.5rem; background: white; border: 1px solid #fca5a5; color: #ef4444; border-radius: 0.375rem; font-size: 0.75rem; cursor: pointer; }
+    .wl-del:hover { background: #fef2f2; }
+    .wl-add-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .wl-input { flex: 1; padding: 0.5rem 0.75rem; border: 1.5px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.8125rem; font-family: inherit; }
+    .wl-input:focus { outline: none; border-color: #7c3aed; }
+    .wl-add-btn { padding: 0.5rem 1rem; background: #7c3aed; color: white; border: none; border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .wl-add-btn:hover { background: #6d28d9; }
+
+    .status-sel {
+      padding: 0.375rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.75rem; font-family: inherit;
+      background: white; outline: none; cursor: pointer; color: #374151;
+    }
+    .status-sel:focus { border-color: #7c3aed; }
+
+    /* ─── Empty State ─────────────────────────────── */
+    .empty { text-align: center; padding: 3rem 1rem; color: #9ca3af; }
+    .empty .ei { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty .et { font-size: 0.875rem; }
+
+    /* ─── Settings ────────────────────────────────── */
+    .settings-grid { display: grid; gap: 1rem; }
+    .setting-card { background: white; border-radius: 0.875rem; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .setting-card h3 { font-size: 0.875rem; font-weight: 700; color: #374151; margin-bottom: 1rem; padding-bottom: 0.625rem; border-bottom: 1px solid #f3f4f6; }
+    .setting-row { margin-bottom: 0.875rem; }
+    .setting-row label { display: block; font-size: 0.8rem; font-weight: 500; color: #4b5563; margin-bottom: 0.375rem; }
+    .setting-input {
+      width: 100%; padding: 0.625rem 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 0.5rem;
+      font-size: 0.875rem; font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .setting-input:focus { border-color: #7c3aed; }
+    .save-settings-btn {
+      padding: 0.625rem 1.5rem; background: #7c3aed; color: white; border: none; border-radius: 0.5rem;
+      font-size: 0.875rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.2s; margin-top: 0.5rem;
+    }
+    .save-settings-btn:hover { background: #5b21b6; }
+    .saved-toast { display: inline-block; font-size: 0.8rem; color: #16a34a; margin-left: 0.75rem; opacity: 0; transition: opacity 0.3s; }
+    .saved-toast.show { opacity: 1; }
+
+    /* ─── Misc ────────────────────────────────────── */
+    .section-title { font-size: 0.8rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.875rem; }
+    .info-alert { background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.625rem; padding: 0.75rem 1rem; font-size: 0.8rem; color: #78350f; line-height: 1.6; margin-bottom: 1rem; }
+    .tag { display: inline-block; padding: 0.2rem 0.5rem; background: #f3f4f6; border-radius: 0.375rem; font-size: 0.7rem; color: #374151; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="emoji">🍇</div>
+    <h1>大村阿榮葡萄</h1>
+    <p>管理後台 — 請輸入密碼</p>
+    <input type="password" id="login-pw" class="login-input" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">登入</button>
+    <div class="login-err" id="login-err">密碼錯誤，請再試一次</div>
+    <div style="margin-top:1rem;font-size:0.7rem;color:#9ca3af;">預設密碼：aqgrape2025（可於設定中更改）</div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-title">🍇 管理後台 <span>大村阿榮葡萄</span></div>
+    <div class="topbar-right">
+      <div class="topbar-date" id="top-date"></div>
+      <button class="logout-btn" onclick="doLogout()">登出</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab on"  id="tab-today"  onclick="switchTab('today')">📊 今日總覽</div>
+    <div class="tab"     id="tab-orders" onclick="switchTab('orders')">📋 所有訂單</div>
+    <div class="tab"     id="tab-export" onclick="switchTab('export')">📤 匯出黑貓</div>
+    <div class="tab"     id="tab-config" onclick="switchTab('config')">⚙️ 設定</div>
+  </div>
+
+  <!-- ====== TAB: TODAY ====== -->
+  <div class="tab-content on" id="tc-today">
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="sum-card">
+        <div class="s-val" id="s-orders">0</div>
+        <div class="s-lbl">今日訂單數</div>
+      </div>
+      <div class="sum-card orange">
+        <div class="s-val" id="s-boxes">0</div>
+        <div class="s-lbl">今日訂購箱數</div>
+      </div>
+      <div class="sum-card green">
+        <div class="s-val" id="s-remain">120</div>
+        <div class="s-lbl">剩餘出貨量</div>
+      </div>
+    </div>
+
+    <!-- Capacity Control -->
+    <div class="cap-control">
+      <h3>📦 今日出貨量調整</h3>
+      <div class="cap-row">
+        <div class="cap-input-wrap">
+          <input type="number" id="cap-input" class="cap-input" min="0" max="200" value="120">
+          <span class="cap-label">/ <span id="cap-total-lbl">120</span> 箱 剩餘</span>
+        </div>
+        <button class="cap-save-btn" onclick="saveCapacity()">更新剩餘量</button>
+        <div class="cap-bar-wrap">
+          <div class="cap-bar-track"><div class="cap-bar-fill" id="admin-cap-fill" style="width:100%"></div></div>
+          <div class="cap-bar-text" id="admin-cap-txt">剩餘 120 / 120 箱</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Orders Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h3>今日訂單</h3>
+        <div class="table-tools">
+          <button class="refresh-btn" onclick="refreshAll()">↻ 重新整理</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="today-table">
+          <thead>
+            <tr>
+              <th>訂單編號</th>
+              <th>收件人</th>
+              <th>電話</th>
+              <th>箱數</th>
+              <th>希望到貨</th>
+              <th>付款</th>
+              <th>金額</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="today-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty hidden" id="today-empty">
+        <div class="ei">📭</div>
+        <div class="et">今日尚無訂單</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== TAB: ALL ORDERS ====== -->
+  <div class="tab-content" id="tc-orders">
+    <div class="table-card">
+      <div class="table-header">
+        <h3>所有訂單</h3>
+        <div class="table-tools">
+          <select class="filter-select" id="filter-status" onchange="renderOrders()">
+            <option value="">全部狀態</option>
+            <option value="申請待審">⚠️ 申請待審</option>
+            <option value="待確認">待確認</option>
+            <option value="已確認">已確認</option>
+            <option value="已出貨">已出貨</option>
+            <option value="已取消">已取消</option>
+          </select>
+          <button class="refresh-btn" onclick="refreshAll()">↻ 重新整理</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="all-table">
+          <thead>
+            <tr>
+              <th>時間</th>
+              <th>訂單編號</th>
+              <th>收件人</th>
+              <th>電話</th>
+              <th>地址</th>
+              <th>箱數</th>
+              <th>希望到貨</th>
+              <th>備註</th>
+              <th>付款</th>
+              <th>合計</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="all-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty hidden" id="all-empty">
+        <div class="ei">📭</div>
+        <div class="et">尚無訂單資料</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== TAB: EXPORT ====== -->
+  <div class="tab-content" id="tc-export">
+    <div class="info-alert">
+      💡 匯出格式依黑貓（宅急便）App 匯入規格製作，包含寄件人、收件人、電話、地址、件數等欄位。<br>
+      請先選擇匯出範圍，點選「下載 CSV」後匯入黑貓 App 即可列印託運單。
+    </div>
+
+    <div class="setting-card" style="margin-bottom:1rem;">
+      <h3>匯出設定</h3>
+      <div class="setting-row">
+        <label>匯出範圍</label>
+        <select class="setting-input" id="export-range">
+          <option value="today">今日訂單</option>
+          <option value="confirmed">已確認（待出貨）</option>
+          <option value="all">全部訂單</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>寄件人姓名（已在設定中填寫：<span id="export-sender-name">吳小姐</span>）</label>
+      </div>
+      <div class="setting-row">
+        <label>寄件人電話（已在設定中填寫：<span id="export-sender-phone">0912-475-796</span>）</label>
+      </div>
+      <div class="setting-row">
+        <label>寄件人地址（已在設定中填寫：<span id="export-sender-addr">請至設定填寫</span>）</label>
+      </div>
+      <button class="export-btn" onclick="exportCSV()">⬇️ 下載黑貓 CSV</button>
+      <button class="export-btn" style="margin-left:0.5rem;background:#2563eb;" onclick="exportAllCSV()">⬇️ 下載完整訂單 Excel</button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header"><h3>預覽匯出內容</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>收件人</th><th>電話</th><th>地址</th><th>件數</th><th>溫層</th><th>備註</th>
+            </tr>
+          </thead>
+          <tbody id="preview-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty hidden" id="export-empty">
+        <div class="ei">📭</div><div class="et">無符合條件的訂單</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== TAB: CONFIG ====== -->
+  <div class="tab-content" id="tc-config">
+    <div class="settings-grid">
+
+      <!-- 基本設定 -->
+      <div class="setting-card">
+        <h3>🏬 基本設定</h3>
+        <div class="setting-row">
+          <label>每日最大出貨量（箱）</label>
+          <input type="number" id="cfg-maxcap" class="setting-input" value="120" min="1" max="999">
+        </div>
+        <div class="setting-row">
+          <label>管理員密碼</label>
+          <input type="password" id="cfg-pw" class="setting-input" placeholder="更改密碼（留空不變）">
+        </div>
+        <button class="save-settings-btn" onclick="saveSection('basic')">儲存</button>
+        <span class="saved-toast" id="toast-basic">✅ 已儲存</span>
+      </div>
+
+      <!-- 匯款帳號 -->
+      <div class="setting-card">
+        <h3>🏦 匯款帳號資訊（顯示於訂購頁面）</h3>
+        <div class="setting-row">
+          <label>銀行名稱</label>
+          <input type="text" id="cfg-bank-name" class="setting-input" placeholder="例：玉山銀行">
+        </div>
+        <div class="setting-row">
+          <label>銀行代碼</label>
+          <input type="text" id="cfg-bank-code" class="setting-input" placeholder="例：808">
+        </div>
+        <div class="setting-row">
+          <label>帳號</label>
+          <input type="text" id="cfg-bank-acct" class="setting-input" placeholder="例：0123456789012">
+        </div>
+        <div class="setting-row">
+          <label>戶名</label>
+          <input type="text" id="cfg-bank-holder" class="setting-input" placeholder="例：吳小姐">
+        </div>
+        <button class="save-settings-btn" onclick="saveSection('bank')">儲存</button>
+        <span class="saved-toast" id="toast-bank">✅ 已儲存</span>
+      </div>
+
+      <!-- 寄件人資訊 -->
+      <div class="setting-card">
+        <h3>📮 寄件人資訊（匯出黑貓 CSV 用）</h3>
+        <div class="setting-row">
+          <label>寄件人姓名</label>
+          <input type="text" id="cfg-sender-name" class="setting-input" placeholder="例：吳小姐">
+        </div>
+        <div class="setting-row">
+          <label>寄件人電話</label>
+          <input type="text" id="cfg-sender-phone" class="setting-input" placeholder="例：0912475796">
+        </div>
+        <div class="setting-row">
+          <label>寄件人地址</label>
+          <input type="text" id="cfg-sender-addr" class="setting-input" placeholder="例：彰化縣大村鄉田洋村...">
+        </div>
+        <button class="save-settings-btn" onclick="saveSection('sender')">儲存</button>
+        <span class="saved-toast" id="toast-sender">✅ 已儲存</span>
+      </div>
+
+      <!-- Google Apps Script -->
+      <div class="setting-card">
+        <h3>🌐 Google Apps Script 後端（多設備同步用）</h3>
+        <div class="info-alert">
+          設定此 URL 後，訂單資料會同步到 Google Sheets，讓弟弟或其他成員也能即時看到剩餘量與訂單。<br>
+          未設定時為本機模式（資料只在此裝置）。<br>
+          詳細設定方式請參閱「設定說明.html」。
+        </div>
+        <div class="setting-row">
+          <label>Apps Script 網址</label>
+          <input type="url" id="cfg-api-url" class="setting-input" placeholder="https://script.google.com/macros/s/...">
+        </div>
+        <div class="setting-row">
+          <label>Apps Script 密碼（需與後端 ADMIN_PASSWORD 一致）</label>
+          <input type="password" id="cfg-api-pw" class="setting-input" placeholder="預設：aqgrape2025">
+        </div>
+        <button class="save-settings-btn" onclick="saveSection('api')">儲存</button>
+        <button class="save-settings-btn" style="background:#6b7280;margin-left:0.5rem;" onclick="testApi()">測試連線</button>
+        <span class="saved-toast" id="toast-api">✅ 已儲存</span>
+        <div id="api-test-result" style="margin-top:0.75rem;font-size:0.8rem;"></div>
+      </div>
+
+      <!-- 資料管理 -->
+      <div class="setting-card">
+        <h3>🗄️ 本機資料管理</h3>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="save-settings-btn" style="background:#6b7280;" onclick="exportLocalBackup()">備份本機資料</button>
+          <button class="save-settings-btn" style="background:#dc2626;" onclick="clearLocalData()">清除本機訂單</button>
+        </div>
+        <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.75rem;" id="local-count"></div>
+      </div>
+
+      <!-- 白名單管理 -->
+      <div class="settings-section">
+        <h3>🛡️ 訂購白名單</h3>
+        <p style="font-size:0.8125rem;color:#6b7280;margin-bottom:0.875rem;">白名單電話豁免所有訂購限制（單筆200箱、每日5筆）。</p>
+        <div id="wl-list" style="min-height:2rem;"></div>
+        <div class="wl-add-row">
+          <input type="tel" id="wl-phone-input" class="wl-input" placeholder="電話號碼">
+          <input type="text" id="wl-note-input" class="wl-input" placeholder="備註（選填）">
+          <button class="wl-add-btn" onclick="addWhitelistPhone()">＋ 加入</button>
+        </div>
+        <button class="save-settings-btn" style="background:#6b7280;margin-top:0.75rem;" onclick="loadWhitelist()">↻ 重新整理</button>
+        <span class="saved-toast" id="toast-wl"></span>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ============================================================
+//  資料層
+// ============================================================
+function getCfg(k, def = '') { return localStorage.getItem('aqgrape_' + k) || def; }
+function setCfg(k, v)        { localStorage.setItem('aqgrape_' + k, v); }
+
+const DEFAULT_PW = 'aqgrape2025';
+
+function getOrders() {
+  try { return JSON.parse(localStorage.getItem('aqgrape_orders') || '[]'); } catch(e) { return []; }
+}
+function saveOrders(arr) { localStorage.setItem('aqgrape_orders', JSON.stringify(arr)); }
+
+function getCapacity() {
+  const today = todayStr();
+  try {
+    const c = JSON.parse(localStorage.getItem('aqgrape_capacity') || 'null');
+    if (c && c.date === today) return c;
+  } catch(e) {}
+  const maxCap = parseInt(getCfg('maxcap', '120'));
+  return { date: today, total: maxCap, remaining: maxCap };
+}
+function storeCapacity(obj) { localStorage.setItem('aqgrape_capacity', JSON.stringify(obj)); }
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+// ─── API (Google Apps Script) ────────────────────
+async function apiFetch(params) {
+  const url = getCfg('api_url');
+  if (!url) return null;
+  try {
+    const r = await fetch(url + '?' + new URLSearchParams(params).toString(), { cache: 'no-store' });
+    return await r.json();
+  } catch(e) { return null; }
+}
+async function apiPost(body) {
+  const url = getCfg('api_url');
+  if (!url) return null;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ ...body, password: getCfg('api_pw', DEFAULT_PW) }),
+    });
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+// ─── Sync from API ───────────────────────────────
+async function syncFromApi() {
+  const res = await apiFetch({ action: 'getOrders', password: getCfg('api_pw', DEFAULT_PW) });
+  if (res && res.success && res.orders) {
+    saveOrders(res.orders);
+  }
+  const cap = await apiFetch({ action: 'getCapacity' });
+  if (cap && cap.success) {
+    const capObj = { date: todayStr(), total: cap.total, remaining: cap.remaining };
+    storeCapacity(capObj);
+    return cap.remaining;
+  }
+  return null;
+}
+
+// ============================================================
+//  Login
+// ============================================================
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  const storedPw = getCfg('admin_pw', DEFAULT_PW);
+  if (pw === storedPw) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('show');
+    initApp();
+  } else {
+    document.getElementById('login-err').classList.add('show');
+    document.getElementById('login-pw').select();
+  }
+}
+document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-err').classList.remove('show');
+}
+
+// ============================================================
+//  App Init
+// ============================================================
+function initApp() {
+  // 日期
+  document.getElementById('top-date').textContent = new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  // 載入設定到表單
+  loadConfigInputs();
+  // 從 API 同步
+  refreshAll();
+  // 載入白名單
+  loadWhitelist();
+}
+
+// ============================================================
+//  Tabs
+// ============================================================
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('on'));
+  document.getElementById('tab-' + t).classList.add('on');
+  document.getElementById('tc-' + t).classList.add('on');
+  if (t === 'export') renderExportPreview();
+}
+
+// ============================================================
+//  Refresh
+// ============================================================
+async function refreshAll() {
+  await syncFromApi(); // 嘗試從 API 同步
+  renderToday();
+  renderOrders();
+  updateSummaryCards();
+  updateCapacityDisplay();
+}
+
+// ============================================================
+//  Today's Summary
+// ============================================================
+function getTodayOrders() {
+  const today = todayStr();
+  return getOrders().filter(o => (o.timestamp || '').startsWith(today));
+}
+
+function updateSummaryCards() {
+  const todayOrders = getTodayOrders();
+  const boxes = todayOrders.reduce((s, o) => s + (parseInt(o.quantity) || 0), 0);
+  const cap = getCapacity();
+  document.getElementById('s-orders').textContent = todayOrders.length;
+  document.getElementById('s-boxes').textContent  = boxes;
+  document.getElementById('s-remain').textContent = cap.remaining;
+}
+
+function updateCapacityDisplay() {
+  const cap = getCapacity();
+  const rem = cap.remaining, tot = cap.total;
+  document.getElementById('cap-input').value      = rem;
+  document.getElementById('cap-total-lbl').textContent = tot;
+  document.getElementById('s-remain').textContent = rem;
+  const pct  = tot > 0 ? (rem / tot * 100) : 0;
+  const fill = document.getElementById('admin-cap-fill');
+  fill.style.width = pct + '%';
+  fill.className = 'cap-bar-fill' + (rem === 0 ? ' full' : rem <= 20 ? ' warn' : '');
+  document.getElementById('admin-cap-txt').textContent = `剩餘 ${rem} / ${tot} 箱`;
+}
+
+async function saveCapacity() {
+  const rem = parseInt(document.getElementById('cap-input').value) || 0;
+  const cap = getCapacity();
+  cap.remaining = rem;
+  storeCapacity(cap);
+  // 同步到 API
+  await apiPost({ action: 'updateCapacity', remaining: rem, total: cap.total, date: todayStr() });
+  updateCapacityDisplay();
+  updateSummaryCards();
+  alert('✅ 剩餘量已更新為 ' + rem + ' 箱');
+}
+
+// ============================================================
+//  Order Table Render
+// ============================================================
+function statusBadge(s) {
+  const map = { '待確認': 'pending', '已確認': 'confirm', '已出貨': 'shipped', '已取消': 'cancel', '申請待審': 'review' };
+  return `<span class="badge ${map[s]||'pending'}">${s || '待確認'}</span>`;
+}
+function payTag(p) {
+  return p === '匯款轉帳' || p === 'transfer' ? '匯款' : '貨到付款';
+}
+function fmtTime(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+  catch(e) { return ts.substring(0,16); }
+}
+
+function makeStatusSelect(order) {
+  const statuses = ['申請待審', '待確認', '已確認', '已出貨', '已取消'];
+  const current = order.status || '待確認';
+  const select = `<select class="status-sel" onchange="updateStatus('${order.orderId}', this.value)">
+    ${statuses.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('')}
+  </select>`;
+  const approveBtn = current === '申請待審'
+    ? `<button class="approve-btn" onclick="approveOrder('${order.orderId}', '${esc(order.phone || '')}')">✓ 核准</button>`
+    : '';
+  return select + approveBtn;
+}
+
+async function updateStatus(orderId, newStatus) {
+  // 取消訂單需二次確認
+  if (newStatus === '已取消') {
+    if (!confirm(`確定要取消訂單 ${orderId}？\n\n取消後將自動歸還出貨容量，此動作無法復原。`)) {
+      renderOrders(); // 重置下拉選單回原值
+      return;
+    }
+  }
+  const orders = getOrders();
+  const idx = orders.findIndex(o => o.orderId === orderId);
+  if (idx >= 0) {
+    orders[idx].status = newStatus;
+    if (newStatus === '已出貨') orders[idx].shippedAt = new Date().toISOString();
+    saveOrders(orders);
+  }
+  // 取消訂單：呼叫 cancelOrder（自動歸還容量）
+  // 其他狀態：呼叫 updateOrderStatus
+  if (newStatus === '已取消') {
+    await apiPost({ action: 'cancelOrder', orderId });
+  } else {
+    await apiPost({ action: 'updateOrderStatus', orderId, status: newStatus });
+  }
+  renderToday();
+  renderOrders();
+  updateSummaryCards();
+}
+
+async function approveOrder(orderId, phone) {
+  const addWL = confirm(
+    `確定核准訂單 ${orderId}？\n\n` +
+    `點「確定」核准並將 ${phone} 加入白名單（日後不受限制）。\n` +
+    `點「取消」僅核准此筆，不加入白名單。`
+  );
+  const orders = getOrders();
+  const idx = orders.findIndex(o => o.orderId === orderId);
+  if (idx >= 0) { orders[idx].status = '待確認'; saveOrders(orders); }
+
+  const res = await apiPost({ action: 'approveOrder', orderId, phone, addToWhitelist: addWL });
+  if (res && res.success) {
+    if (addWL) await loadWhitelist(); // 更新白名單列表
+    showNotice('✅ 訂單已核准');
+  } else {
+    showNotice('❌ ' + ((res && res.error) || '核准失敗'), 'err');
+  }
+  renderToday(); renderOrders(); updateSummaryCards();
+}
+
+function showNotice(msg, type) {
+  let t = document.getElementById('admin-notice');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'admin-notice';
+    t.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:0.625rem 1.25rem;border-radius:0.75rem;font-size:0.875rem;font-weight:600;z-index:9999;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'err' ? '#991b1b' : '#1f2937';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderToday() {
+  const rows = getTodayOrders();
+  const tbody = document.getElementById('today-tbody');
+  const empty = document.getElementById('today-empty');
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = rows.map(o => `
+    <tr>
+      <td><span class="tag" style="font-size:0.65rem;">${esc(o.orderId)}</span></td>
+      <td>${esc(o.name)}</td>
+      <td>${esc(o.phone)}</td>
+      <td><strong>${esc(o.quantity)}</strong></td>
+      <td>${esc(o.deliveryDate||'')}</td>
+      <td>${payTag(o.payment)}</td>
+      <td>NT$ ${(parseInt(o.total)||0).toLocaleString()}</td>
+      <td>${makeStatusSelect(o)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderOrders() {
+  const filterStatus = document.getElementById('filter-status')?.value || '';
+  let rows = getOrders();
+  if (filterStatus) rows = rows.filter(o => (o.status||'待確認') === filterStatus);
+  const tbody = document.getElementById('all-tbody');
+  const empty = document.getElementById('all-empty');
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = rows.map(o => `
+    <tr>
+      <td style="white-space:nowrap;color:#6b7280;">${fmtTime(o.timestamp)}</td>
+      <td><span class="tag" style="font-size:0.65rem;">${esc(o.orderId)}</span></td>
+      <td>${esc(o.name)}</td>
+      <td>${esc(o.phone)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(o.address)}">${esc(o.address)}</td>
+      <td><strong>${esc(o.quantity)}</strong></td>
+      <td>${esc(o.deliveryDate||'')}</td>
+      <td style="color:#6b7280;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(o.notes)}">${esc(o.notes||'')}</td>
+      <td>${payTag(o.payment)}</td>
+      <td>NT$ ${(parseInt(o.total)||0).toLocaleString()}</td>
+      <td>${makeStatusSelect(o)}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+//  Export
+// ============================================================
+function getExportOrders() {
+  const range = document.getElementById('export-range')?.value || 'today';
+  let orders = getOrders();
+  if (range === 'today')     orders = orders.filter(o => (o.timestamp||'').startsWith(todayStr()));
+  if (range === 'confirmed') orders = orders.filter(o => (o.status||'待確認') === '已確認');
+  return orders;
+}
+
+function renderExportPreview() {
+  const orders = getExportOrders();
+  const tbody = document.getElementById('preview-tbody');
+  const empty = document.getElementById('export-empty');
+  if (!orders.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = orders.map(o => {
+    const boxes = parseInt(o.quantity) || 1;
+    const units = Math.ceil(boxes / 4);
+    return `
+      <tr>
+        <td>${esc(o.name)}</td>
+        <td>${esc(o.phone)}</td>
+        <td>${esc(o.address)}</td>
+        <td>${units} 件（${boxes} 箱）</td>
+        <td>低溫</td>
+        <td>${esc(o.notes||'')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function downloadCSV(content, filename) {
+  const BOM = '﻿'; // UTF-8 BOM for Excel
+  const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+  const orders = getExportOrders();
+  if (!orders.length) { alert('目前沒有符合條件的訂單'); return; }
+  const sName  = getCfg('sender_name',  '吳小姐');
+  const sPhone = getCfg('sender_phone', '0912475796');
+  const sAddr  = getCfg('sender_addr',  '彰化縣大村鄉');
+  const rows = [
+    ['寄件人姓名','寄件人電話','寄件人地址','收件人姓名','收件人電話','收件人地址','件數','溫層','代收金額','備註'],
+    ...orders.map(o => {
+      const boxes = parseInt(o.quantity) || 1;
+      const units = Math.ceil(boxes / 4);
+      const cod   = (o.payment === 'cod' || o.payment === '貨到付款') ? (o.total || '') : '';
+      return [sName, sPhone, sAddr, o.name, o.phone, o.address, units, '低溫', cod, o.notes || ''];
+    })
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const date = todayStr().replace(/-/g,'');
+  downloadCSV(csv, `黑貓匯入_${date}.csv`);
+}
+
+function exportAllCSV() {
+  const orders = getOrders();
+  if (!orders.length) { alert('目前沒有訂單資料'); return; }
+  const rows = [
+    ['訂單編號','下單時間','收件人','電話','地址','箱數','希望到貨','備註','付款方式','商品金額','運費','合計','狀態'],
+    ...orders.map(o => [
+      o.orderId, o.timestamp, o.name, o.phone, o.address,
+      o.quantity, o.deliveryDate, o.notes||'',
+      payTag(o.payment), o.price, o.shipping, o.total, o.status||'待確認'
+    ])
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  downloadCSV(csv, `阿Q葡萄訂單_${todayStr().replace(/-/g,'')}.csv`);
+}
+
+// ============================================================
+//  Settings
+// ============================================================
+function loadConfigInputs() {
+  document.getElementById('cfg-maxcap').value       = getCfg('maxcap', '120');
+  document.getElementById('cfg-bank-name').value    = getCfg('bank_name', '玉山銀行');
+  document.getElementById('cfg-bank-code').value    = getCfg('bank_code', '808');
+  document.getElementById('cfg-bank-acct').value    = getCfg('bank_acct', '');
+  document.getElementById('cfg-bank-holder').value  = getCfg('bank_holder', '吳小姐');
+  document.getElementById('cfg-sender-name').value  = getCfg('sender_name', '吳小姐');
+  document.getElementById('cfg-sender-phone').value = getCfg('sender_phone', '0912475796');
+  document.getElementById('cfg-sender-addr').value  = getCfg('sender_addr', '');
+  document.getElementById('cfg-api-url').value      = getCfg('api_url', 'https://script.google.com/macros/s/AKfycbwP10rHNagt9uiEYAaeT4gcyOhBcPYzhb8EqKJJnKTig2Er-lGgA3XodwWpGZaXEV1w/exec');
+  document.getElementById('cfg-api-pw').value       = getCfg('api_pw', '');
+  // 更新匯出頁顯示
+  document.getElementById('export-sender-name').textContent  = getCfg('sender_name', '吳小姐');
+  document.getElementById('export-sender-phone').textContent = getCfg('sender_phone', '0912475796');
+  document.getElementById('export-sender-addr').textContent  = getCfg('sender_addr', '（未設定）');
+  // 本機資料數
+  document.getElementById('local-count').textContent = `本機已儲存 ${getOrders().length} 筆訂單`;
+}
+
+function showToast(id) {
+  const el = document.getElementById('toast-' + id);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function saveSection(sec) {
+  if (sec === 'basic') {
+    setCfg('maxcap', document.getElementById('cfg-maxcap').value);
+    const pw = document.getElementById('cfg-pw').value;
+    if (pw) { setCfg('admin_pw', pw); document.getElementById('cfg-pw').value = ''; }
+  } else if (sec === 'bank') {
+    setCfg('bank_name',   document.getElementById('cfg-bank-name').value);
+    setCfg('bank_code',   document.getElementById('cfg-bank-code').value);
+    setCfg('bank_acct',   document.getElementById('cfg-bank-acct').value);
+    setCfg('bank_holder', document.getElementById('cfg-bank-holder').value);
+  } else if (sec === 'sender') {
+    setCfg('sender_name',  document.getElementById('cfg-sender-name').value);
+    setCfg('sender_phone', document.getElementById('cfg-sender-phone').value);
+    setCfg('sender_addr',  document.getElementById('cfg-sender-addr').value);
+  } else if (sec === 'api') {
+    setCfg('api_url', document.getElementById('cfg-api-url').value.trim());
+    setCfg('api_pw',  document.getElementById('cfg-api-pw').value);
+  }
+  loadConfigInputs();
+  showToast(sec);
+}
+
+async function testApi() {
+  const result = document.getElementById('api-test-result');
+  result.textContent = '⏳ 測試中…';
+  const res = await apiFetch({ action: 'getCapacity' });
+  if (res && res.success) {
+    result.style.color = '#16a34a';
+    result.textContent = `✅ 連線成功！今日剩餘：${res.remaining} 箱`;
+  } else {
+    result.style.color = '#dc2626';
+    result.textContent = '❌ 連線失敗，請確認 Apps Script 網址是否正確且已部署';
+  }
+}
+
+function exportLocalBackup() {
+  const data = { orders: getOrders(), capacity: getCapacity(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `aqgrape_backup_${todayStr()}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+//  白名單管理
+// ============================================================
+async function loadWhitelist() {
+  const listEl = document.getElementById('wl-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<span style="font-size:0.8rem;color:#9ca3af;">載入中…</span>';
+  const res = await apiFetch({ action: 'getWhitelist' });
+  if (!res || !res.success) {
+    listEl.innerHTML = '<span style="font-size:0.8rem;color:#ef4444;">載入失敗</span>';
+    return;
+  }
+  if (!res.whitelist || res.whitelist.length === 0) {
+    listEl.innerHTML = '<span style="font-size:0.8rem;color:#9ca3af;">目前無白名單</span>';
+    return;
+  }
+  listEl.innerHTML = res.whitelist.map(w =>
+    `<div class="wl-row">
+      <span class="wl-phone">${esc(w.phone)}</span>
+      <span class="wl-note">${esc(w.note || '')} <span style="color:#d1d5db;font-size:0.7rem;">${esc(w.addedAt || '')}</span></span>
+      <button class="wl-del" onclick="removeWhitelistPhone('${esc(w.phone)}')">移除</button>
+    </div>`
+  ).join('');
+}
+
+async function addWhitelistPhone() {
+  const phone = (document.getElementById('wl-phone-input').value || '').trim();
+  const note  = (document.getElementById('wl-note-input').value  || '').trim();
+  if (!phone) { alert('請輸入電話號碼'); return; }
+  const res = await apiPost({ action: 'addWhitelist', phone, note });
+  if (res && res.success) {
+    document.getElementById('wl-phone-input').value = '';
+    document.getElementById('wl-note-input').value  = '';
+    await loadWhitelist();
+    showNotice('✅ 已加入白名單');
+  } else {
+    showNotice('❌ ' + ((res && res.error) || '加入失敗'), 'err');
+  }
+}
+
+async function removeWhitelistPhone(phone) {
+  if (!confirm(`確定要將 ${phone} 從白名單移除？`)) return;
+  const res = await apiPost({ action: 'removeWhitelist', phone });
+  if (res && res.success) {
+    await loadWhitelist();
+    showNotice('✅ 已移除');
+  } else {
+    showNotice('❌ 移除失敗', 'err');
+  }
+}
+
+function clearLocalData() {
+  if (!confirm('確定要清除本機所有訂單資料嗎？此動作無法復原！\n（如有啟用 Google Apps Script，Google Sheets 中的資料不受影響）')) return;
+  localStorage.removeItem('aqgrape_orders');
+  localStorage.removeItem('aqgrape_capacity');
+  renderToday(); renderOrders(); updateSummaryCards(); updateCapacityDisplay();
+  document.getElementById('local-count').textContent = '本機已儲存 0 筆訂單';
+  alert('✅ 已清除');
+}
+
+document.getElementById('export-range').addEventListener('change', renderExportPreview);
+</script>
+</body>
+</html>
