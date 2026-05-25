@@ -1044,4 +1044,78 @@ async function lookupOrder() {
   var orderId = (document.getElementById('lk-orderid').value || '').trim().toUpperCase();
   var phone   = (document.getElementById('lk-phone').value   || '').trim();
   var msgEl   = document.getElementById('lk-msg');
-  var resEl   = d
+  var resEl   = document.getElementById('lk-result');
+
+  msgEl.style.display = 'none';
+  resEl.style.display = 'none';
+  resEl.innerHTML = '';
+
+  if (!orderId || !phone) {
+    msgEl.className = 'lookup-msg err';
+    msgEl.textContent = '請填寫訂單編號與聯絡電話';
+    msgEl.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('lk-search-btn');
+  btn.disabled = true;
+  btn.textContent = '查詢中…';
+
+  try {
+    var r = await fetch(CFG.apiUrl + '?' + new URLSearchParams({ action: 'lookupOrder', orderId: orderId, phone: phone }).toString(), { cache: 'no-store' });
+    var d = await r.json();
+
+    if (!d.success || !d.order) {
+      msgEl.className = 'lookup-msg err';
+      msgEl.textContent = d.error || '找不到此訂單，請確認訂單編號與電話是否正確';
+      msgEl.style.display = 'block';
+    } else {
+      var o = d.order;
+      var statusMap = { '待確認': '⏳ 待確認', '已確認': '✅ 已確認', '已出貨': '🚚 已出貨', '已取消': '❌ 已取消', '申請待審': '🔍 申請待審' };
+      var cardClass = 'lookup-result-card' + (o.status === '已取消' ? ' cancelled' : o.status === '已出貨' ? ' shipped' : '');
+      var canCancel = (o.status === '待確認' || o.status === '已確認');
+      resEl.innerHTML =
+        '<div class="' + cardClass + '">' +
+        '<div class="lr-row"><span>訂單編號</span><span><b>' + o.orderId + '</b></span></div>' +
+        '<div class="lr-row"><span>姓名</span><span>' + o.name + '</span></div>' +
+        '<div class="lr-row"><span>箱數</span><span>' + o.quantity + ' 箱</span></div>' +
+        '<div class="lr-row"><span>出貨日期</span><span>' + dateToDisplay(o.deliveryDate) + '</span></div>' +
+        '<div class="lr-row"><span>付款方式</span><span>' + (o.payment === 'transfer' || o.payment === '匯款轉帳' ? '匯款轉帳' : '貨到付款') + '</span></div>' +
+        '<div class="lr-row"><span>總金額</span><span>NT$ ' + o.total + '</span></div>' +
+        '<div class="lr-row"><span>狀態</span><span>' + (statusMap[o.status] || o.status) + '</span></div>' +
+        (canCancel ? '<button class="cancel-order-btn" onclick="cancelOrder(\'' + o.orderId + '\',\'' + phone + '\')">取消此訂單</button>' : '') +
+        '</div>';
+      resEl.style.display = 'block';
+    }
+  } catch(e) {
+    msgEl.className = 'lookup-msg err';
+    msgEl.textContent = '查詢失敗，請稍後再試';
+    msgEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '查詢訂單';
+}
+
+async function cancelOrder(orderId, phone) {
+  if (!confirm('確定要取消訂單 ' + orderId + ' 嗎？此操作無法復原。')) return;
+  try {
+    var r = await fetch(CFG.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'cancelOrder', orderId: orderId, phone: phone }),
+    });
+    var d = await r.json();
+    if (d && d.success) {
+      alert('訂單已成功取消。');
+      lookupOrder();
+    } else {
+      alert('取消失敗：' + (d && d.error ? d.error : '請稍後再試'));
+    }
+  } catch(e) {
+    alert('取消失敗，請稍後再試');
+  }
+}
+</script>
+</body>
+</html>
